@@ -5,3 +5,15 @@ spring:
 
 binance:
   base-url: https://api.binance.com
+  # Bound every outbound call. Without a read timeout an upstream that accepts the
+  # connection but never answers pins the calling thread indefinitely; without a
+  # connect timeout we fall back to the OS TCP timeout (tens of seconds).
+  connect-timeout: 2s
+  read-timeout: 3s
+
+price-stream:
+  # How often the poller asks Binance for a fresh price, per subscribed symbol.
+  poll-interval: 2s
+  # How long an idle SSE connection is held open before the server closes it; the
+  # browser's EventSource reconnects automatically afterwards.
+  timeout: 30m
