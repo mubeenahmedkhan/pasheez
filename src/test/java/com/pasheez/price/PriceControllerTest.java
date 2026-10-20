@@ -40,8 +40,11 @@ class PriceControllerTest {
 
         mockMvc.perform(get("/prices/btcusdt"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.symbol.value").value("BTCUSDT"))
-                .andExpect(jsonPath("$.price").value(82252.00));
+                // Symbol is @JsonValue-annotated, so it serializes as a bare string
+                // rather than a nested {"value":"..."} object.
+                .andExpect(jsonPath("$.symbol").value("BTCUSDT"))
+                .andExpect(jsonPath("$.price").value(82252.00))
+                .andExpect(jsonPath("$.timestamp").exists());
     }
 
     @Test

@@ -1,6 +1,8 @@
 package com.pasheez.price;
 
-public record Symbol(String value) {
+import com.fasterxml.jackson.annotation.JsonValue;
+
+public record Symbol(@JsonValue String value) {
     public Symbol {
         if (value == null || value.isBlank()) {
             throw new IllegalArgumentException("Symbol cannot be blank");
