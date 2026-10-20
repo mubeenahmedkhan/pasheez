@@ -1,0 +1,182 @@
+.panel {
+  width: min(34rem, 100%);
+  padding: 2.75rem 2.5rem 1.75rem;
+  background: var(--card);
+  border: 1px solid var(--rule);
+  border-radius: 2px;          /* tilework is square-edged, not pill-shaped */
+  box-shadow: var(--shadow);
+  position: relative;
+}
+
+/* A fine inner keyline, the way a tile panel is framed twice. */
+.panel::after {
+  content: '';
+  position: absolute;
+  inset: 6px;
+  border: 1px solid var(--rule);
+  border-radius: 1px;
+  pointer-events: none;
+}
+
+.masthead {
+  text-align: center;
+  padding-bottom: 1.75rem;
+  border-bottom: 1px solid var(--rule);
+}
+
+.wordmark {
+  margin: 0;
+  font-family: var(--serif);
+  font-weight: 400;
+  font-size: 1.75rem;
+  letter-spacing: 0.16em;
+  color: var(--lapis);
+}
+
+.tagline {
+  margin: 0.5rem 0 0;
+  font-family: var(--serif);
+  font-size: 0.95rem;
+  font-style: italic;
+  color: var(--firouzeh);
+}
+
+.blurb {
+  margin: 1rem auto 0;
+  max-width: 26rem;
+  font-size: 0.82rem;
+  line-height: 1.6;
+  color: var(--ink-soft);
+}
+
+.quotes {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 1.5rem;
+  padding: 0.9rem 0.5rem;
+  border-bottom: 1px solid var(--rule);
+  transition: background 0.4s ease-out;
+}
+
+.row:last-child {
+  border-bottom: none;
+}
+
+.row:hover {
+  background: rgba(42, 157, 155, 0.04);
+}
+
+.row-asset {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.row-name {
+  font-family: var(--serif);
+  font-size: 1rem;
+  color: var(--ink);
+}
+
+.row-pair {
+  font-size: 0.68rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.row-price {
+  font-size: 1.3rem;
+  font-weight: 300;
+
+  /* Tabular figures give every digit the same width, so the number cannot jitter
+     sideways as it changes. Essential when eight rows update every two seconds. */
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: 'tnum';
+
+  /* Slow on purpose: the tint arrives and fades rather than flashing. */
+  transition: color 1.4s ease-out;
+  color: var(--ink);
+}
+
+.row-price.up {
+  color: var(--rise);
+}
+
+.row-price.down {
+  color: var(--fall);
+}
+
+.meta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-top: 0.5rem;
+  padding-top: 1rem;
+  border-top: 1px solid var(--rule);
+
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+}
+
+.status {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  text-transform: uppercase;
+}
+
+.status::before {
+  content: '';
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--ink-soft);
+  transition: background 0.6s ease-out;
+}
+
+.status.live::before {
+  background: var(--firouzeh);
+}
+
+.status.connecting::before {
+  background: var(--saffron);
+}
+
+.status.error::before {
+  background: var(--fall);
+}
+
+.footnote {
+  margin: 1.25rem 0 0;
+  text-align: center;
+  font-size: 0.68rem;
+  line-height: 1.6;
+  color: var(--ink-soft);
+  opacity: 0.8;
+}
+
+/* Someone who has asked their OS for less motion gets none of ours. */
+@media (prefers-reduced-motion: reduce) {
+  * {
+    transition: none !important;
+  }
+}
+
+@media (max-width: 30rem) {
+  .panel {
+    padding: 2rem 1.25rem 1.25rem;
+  }
+  .row {
+    padding: 0.8rem 0.25rem;
+  }
+}

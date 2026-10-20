@@ -5,9 +5,11 @@ import org.slf4j.LoggerFactory;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Component;
 
+import java.util.Set;
+
 /**
- * Pulls a fresh price for every symbol someone is listening to and hands it to the
- * stream service. Binance has no push API here, so "live" is polling plus fan-out.
+ * Pulls fresh prices for every symbol someone is listening to and hands them to the stream
+ * service. Binance has no push API here, so "live" is polling plus fan-out.
  */
 @Component
 public class PricePoller {
@@ -24,14 +26,21 @@ public class PricePoller {
 
     @Scheduled(fixedRateString = "${price-stream.poll-interval}")
     void pollSubscribedSymbols() {
-        for (Symbol symbol : streamService.subscribedSymbols()) {
-            try {
-                streamService.broadcast(priceSource.latestPrice(symbol));
-            } catch (RuntimeException ex) {
-                // One failing symbol must not abort the tick for the others, and must not
-                // escape: an exception thrown out of a @Scheduled method is only logged.
-                log.warn("Poll failed for {}: {}", symbol.value(), ex.getMessage());
-            }
+        Set<Symbol> symbols = streamService.subscribedSymbols();
+        if (symbols.isEmpty()) {
+            return;
+        }
+
+        try {
+            // One upstream request per tick, whatever the symbol count. Previously this was
+            // a sequential call per symbol on the single scheduler thread, which would
+            // overrun the poll interval as the watchlist grew.
+            priceSource.latestPrices(symbols).forEach(streamService::broadcast);
+        } catch (RuntimeException ex) {
+            // Must not escape: an exception thrown out of a @Scheduled method is only logged,
+            // and the next tick should still run.
+            log.warn("Poll failed for {}: {}",
+                    symbols.stream().map(Symbol::value).toList(), ex.getMessage());
         }
     }
 }
