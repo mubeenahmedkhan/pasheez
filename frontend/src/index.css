@@ -1,0 +1,64 @@
+/* ──────────────────────────────────────────────────────────────────────────
+   Design tokens. Persian palette: turquoise (firouzeh) and lapis as anchors,
+   warm parchment ground, deep ink text, saffron as the single sparing accent.
+   Change a value here and it propagates everywhere — this is why we use custom
+   properties instead of repeating colours in each rule.
+   ────────────────────────────────────────────────────────────────────────── */
+:root {
+  --parchment: #faf6ef;
+  --card: #fffdf8;
+  --ink: #1f2430;
+  --ink-soft: #5e6575;
+  --firouzeh: #2a9d9b;
+  --lapis: #1f4e79;
+  --saffron: #c98f28;
+  --rise: #5f8a6a;
+  --fall: #b0603f;
+  --rule: rgba(31, 78, 121, 0.16);
+  --shadow: 0 1px 2px rgba(31, 36, 48, 0.04), 0 10px 30px rgba(31, 78, 121, 0.07);
+
+  --serif: 'Iowan Old Style', Palatino, 'Palatino Linotype', Georgia, serif;
+  --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+}
+
+/* Same palette, re-lit for a dark viewer. Only the tokens change; no rule below
+   needs to know which theme is active. */
+@media (prefers-color-scheme: dark) {
+  :root {
+    --parchment: #101620;
+    --card: #161d28;
+    --ink: #ece5d7;
+    --ink-soft: #99a2b2;
+    --firouzeh: #49bdb8;
+    --lapis: #7fa8d0;
+    --saffron: #d8a84a;
+    --rise: #7faa88;
+    --fall: #c87d5e;
+    --rule: rgba(73, 189, 184, 0.2);
+    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.25);
+  }
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 2rem 1.25rem;
+
+  font-family: var(--sans);
+  color: var(--ink);
+  background-color: var(--parchment);
+
+  /* Girih: two squares at 45° make the eight-pointed star of Persian tilework.
+     Kept at very low opacity — texture you notice only if you look for it. */
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Cg fill='none' stroke='%231f4e79' stroke-width='1' opacity='0.09'%3E%3Crect x='16' y='16' width='32' height='32'/%3E%3Crect x='16' y='16' width='32' height='32' transform='rotate(45 32 32)'/%3E%3C/g%3E%3C/svg%3E");
+  background-size: 64px 64px;
+
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}

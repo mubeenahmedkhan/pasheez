@@ -8,7 +8,9 @@ binance:
   # Bound every outbound call. Without a read timeout an upstream that accepts the
   # connection but never answers pins the calling thread indefinitely; without a
   # connect timeout we fall back to the OS TCP timeout (tens of seconds).
-  connect-timeout: 2s
+  # Raised from 2s: three concurrent subscribes each needed a TLS handshake and the
+  # third timed out. Connect timeouts are a measured value, not a guess.
+  connect-timeout: 5s
   read-timeout: 3s
 
 price-stream:
@@ -17,3 +19,8 @@ price-stream:
   # How long an idle SSE connection is held open before the server closes it; the
   # browser's EventSource reconnects automatically afterwards.
   timeout: 30m
+
+frontend:
+  # Origins allowed to call this API from a browser. Comma-separated; Vite's dev server
+  # defaults to port 5173. The deployed frontend's domain gets added at M4.
+  allowed-origins: http://localhost:5173

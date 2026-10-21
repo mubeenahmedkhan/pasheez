@@ -8,20 +8,27 @@ import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
 import java.io.IOException;
 import java.time.Duration;
+import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 
 /**
- * Keeps track of who is currently listening to which symbol, and fans price ticks out
- * to them. Every method here can be called from two different threads at once — the
- * Tomcat request thread (subscribe) and the scheduler thread (broadcast) — so all state
- * is held in concurrent collections.
+ * Keeps track of who is listening to which symbols, and fans price ticks out to them.
+ * Every method here can be called from two thread types at once — Tomcat request threads
+ * (subscribe) and the scheduler thread (broadcast) — so all state is concurrent.
+ * <p>
+ * One emitter may be registered under several symbols: a client opens a single connection
+ * for a whole watchlist, because browsers cap concurrent HTTP/1.1 connections per origin
+ * at around six and a long-lived stream would occupy one of those slots indefinitely.
  */
 @Service
 public class PriceStreamService {
 
     private static final Logger log = LoggerFactory.getLogger(PriceStreamService.class);
+
+    /** Guard rail: one request cannot ask us to poll an unbounded number of symbols. */
+    static final int MAX_SYMBOLS_PER_STREAM = 20;
 
     private final Map<Symbol, Set<SseEmitter>> subscribers = new ConcurrentHashMap<>();
     private final PriceSource priceSource;
@@ -33,30 +40,46 @@ public class PriceStreamService {
         this.streamTimeout = streamTimeout;
     }
 
+    public SseEmitter subscribe(Symbol symbol) {
+        return subscribe(List.of(symbol));
+    }
+
     /**
-     * Open a stream for one symbol.
+     * Open one stream carrying every requested symbol.
      * <p>
-     * The first price is fetched <em>before</em> the emitter is created, on purpose. Once
+     * The first prices are fetched <em>before</em> the emitter is created, on purpose. Once
      * an SseEmitter is returned the response is committed as 200 text/event-stream and the
      * status can never be changed — so an unknown symbol has to fail here, while a 404 is
-     * still possible. It also means the client sees data immediately instead of waiting
-     * for the next poll tick.
+     * still possible. It also means the client renders immediately instead of waiting for
+     * the next poll tick.
      */
-    public SseEmitter subscribe(Symbol symbol) {
-        PriceTick first = priceSource.latestPrice(symbol);
+    public SseEmitter subscribe(List<Symbol> symbols) {
+        if (symbols.isEmpty()) {
+            throw new IllegalArgumentException("At least one symbol is required");
+        }
+        if (symbols.size() > MAX_SYMBOLS_PER_STREAM) {
+            throw new IllegalArgumentException(
+                    "At most " + MAX_SYMBOLS_PER_STREAM + " symbols per stream, got " + symbols.size());
+        }
+
+        List<PriceTick> firstTicks = priceSource.latestPrices(symbols);
 
         SseEmitter emitter = new SseEmitter(streamTimeout.toMillis());
-        subscribers.computeIfAbsent(symbol, s -> ConcurrentHashMap.newKeySet()).add(emitter);
+        symbols.forEach(symbol ->
+                subscribers.computeIfAbsent(symbol, s -> ConcurrentHashMap.newKeySet()).add(emitter));
 
-        emitter.onCompletion(() -> unsubscribe(symbol, emitter));
+        // This emitter is registered under several keys, so teardown has to unregister it
+        // from all of them — not just the one that happened to fail.
+        Runnable cleanUp = () -> symbols.forEach(symbol -> unsubscribe(symbol, emitter));
+        emitter.onCompletion(cleanUp);
         emitter.onTimeout(() -> {
             emitter.complete();
-            unsubscribe(symbol, emitter);
+            cleanUp.run();
         });
-        emitter.onError(e -> unsubscribe(symbol, emitter));
+        emitter.onError(e -> cleanUp.run());
 
-        send(symbol, emitter, first);
-        log.debug("Subscribed to {} ({} listener(s))", symbol.value(), countFor(symbol));
+        firstTicks.forEach(tick -> send(tick.symbol(), emitter, tick));
+        log.debug("Subscribed to {}", symbols.stream().map(Symbol::value).toList());
         return emitter;
     }
 
@@ -81,25 +104,19 @@ public class PriceStreamService {
         } catch (IOException | IllegalStateException ex) {
             // Normal: the browser tab closed. Not an error worth shouting about.
             log.debug("Dropping dead emitter for {}: {}", symbol.value(), ex.getMessage());
-            unsubscribe(symbol, emitter);
             emitter.completeWithError(ex);
         }
     }
 
     /**
-     * Remove one listener, and drop the symbol entirely once nobody is left — otherwise
-     * the poller would keep calling Binance for a symbol with no audience. computeIfPresent
-     * makes the "remove, then maybe remove the key" pair atomic for that key.
+     * Remove one listener, and drop the symbol entirely once nobody is left — otherwise the
+     * poller would keep calling Binance for a symbol with no audience. computeIfPresent makes
+     * the "remove, then maybe remove the key" pair atomic for that key.
      */
     private void unsubscribe(Symbol symbol, SseEmitter emitter) {
         subscribers.computeIfPresent(symbol, (s, emitters) -> {
             emitters.remove(emitter);
             return emitters.isEmpty() ? null : emitters;
         });
-    }
-
-    private int countFor(Symbol symbol) {
-        Set<SseEmitter> emitters = subscribers.get(symbol);
-        return emitters == null ? 0 : emitters.size();
     }
 }
