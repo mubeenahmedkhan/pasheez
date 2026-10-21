@@ -29,6 +29,11 @@ class SymbolTest {
     }
 
     @Test
+    void trimsSurroundingWhitespace() {
+        assertEquals("BTCUSDT", new Symbol("  btcusdt  ").value());
+    }
+
+    @Test
     void rejectsNull() {
         assertThrows(IllegalArgumentException.class, () -> new Symbol(null));
     }

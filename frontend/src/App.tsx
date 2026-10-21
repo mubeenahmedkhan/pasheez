@@ -3,7 +3,10 @@ import PriceRow from './PriceRow'
 import type { Direction, PriceTick, Status } from './types'
 import './App.css'
 
-const API_BASE = 'http://localhost:8080'
+// Injected at build time from .env.development locally, and from the hosting
+// provider's environment variables when deployed. Hardcoding localhost here would mean
+// a deployed page tries to call the visitor's own machine.
+const API_BASE = import.meta.env.VITE_API_BASE_URL
 
 // The watchlist: eight of the most heavily traded USDT pairs on Binance.
 const WATCHLIST = [
