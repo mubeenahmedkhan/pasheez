@@ -3,6 +3,8 @@ package com.pasheez.price;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.context.event.ContextClosedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.stereotype.Service;
 import org.springframework.web.servlet.mvc.method.annotation.SseEmitter;
 
@@ -106,6 +108,31 @@ public class PriceStreamService {
             log.debug("Dropping dead emitter for {}: {}", symbol.value(), ex.getMessage());
             emitter.completeWithError(ex);
         }
+    }
+
+    /**
+     * An SSE response never completes on its own, so Spring's graceful shutdown would
+     * wait out its whole timeout on every deploy. Completing the emitters ourselves lets
+     * the instance stop promptly; each browser's EventSource then reconnects — to the
+     * newly deployed instance.
+     * <p>
+     * Hooked to {@code ContextClosedEvent}, not {@code @PreDestroy}: the shutdown order is
+     * publish ContextClosedEvent → stop lifecycle beans (where graceful shutdown waits for
+     * active requests) → destroy beans. A {@code @PreDestroy} therefore runs *after* the
+     * wait has already timed out — measured at 17s with a 15s timeout, logging "Graceful
+     * shutdown aborted with one or more requests still active".
+     */
+    @EventListener(ContextClosedEvent.class)
+    void closeAllStreams() {
+        int closed = 0;
+        for (Set<SseEmitter> emitters : subscribers.values()) {
+            for (SseEmitter emitter : emitters) {
+                emitter.complete();
+                closed++;
+            }
+        }
+        subscribers.clear();
+        log.info("Closed {} price stream(s) on shutdown", closed);
     }
 
     /**

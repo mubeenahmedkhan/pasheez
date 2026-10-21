@@ -1,0 +1,14 @@
+# Everything here is excluded from the build context. Keeps builds fast, images small,
+# and — importantly — keeps local-only files out of a shipped artifact.
+target/
+frontend/
+docs/
+.git/
+.github/
+.idea/
+.vscode/
+CONTEXT.md
+*.md
+.env*
+*.log
+.DS_Store

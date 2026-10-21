@@ -45,6 +45,14 @@
 			<groupId>org.springframework.boot</groupId>
 			<artifactId>spring-boot-starter-web</artifactId>
 		</dependency>
+
+		<!-- Gives /actuator/health, which the deploy platform polls to decide whether
+		     this container is alive. Pulled forward from M6, where it becomes the
+		     foundation for Micrometer/Prometheus metrics. -->
+		<dependency>
+			<groupId>org.springframework.boot</groupId>
+			<artifactId>spring-boot-starter-actuator</artifactId>
+		</dependency>
 	</dependencies>
 
 	<build>

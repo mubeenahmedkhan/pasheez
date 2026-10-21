@@ -1,6 +1,16 @@
 spring:
   application:
     name: pasheez
+why   lifecycle:
+    # How long to wait for in-flight work before shutting down anyway.
+    timeout-per-shutdown-phase: 15s
+
+server:
+  # Hosting platforms assign the port and inject it as PORT; a hardcoded 8080 would
+  # simply never be reached. The default keeps local runs unchanged.
+  port: ${PORT:8080}
+  # Finish in-flight requests instead of severing them mid-response on deploy.
+  shutdown: graceful
 
 
 binance:
