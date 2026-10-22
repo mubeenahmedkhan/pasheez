@@ -5,6 +5,9 @@ import java.util.List;
 
 public interface PriceSource {
 
+    /** Human-readable name of the upstream, shown to users so the data's origin is honest. */
+    String name();
+
     PriceTick latestPrice(Symbol symbol);
 
     /**

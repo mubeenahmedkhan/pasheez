@@ -1,7 +1,7 @@
 spring:
   application:
     name: pasheez
-why   lifecycle:
+  lifecycle:
     # How long to wait for in-flight work before shutting down anyway.
     timeout-per-shutdown-phase: 15s
 
@@ -13,24 +13,36 @@ server:
   shutdown: graceful
 
 
-binance:
-  base-url: https://api.binance.com
+price-source:
+  # Which exchange backs the PriceSource port: binance | kraken.
+  # Production overrides this to kraken (PRICE_SOURCE_PROVIDER), because Binance bans the
+  # deploy host's shared outbound IPs. See ADR 0005.
+  provider: binance
+
+upstream:
   # Bound every outbound call. Without a read timeout an upstream that accepts the
   # connection but never answers pins the calling thread indefinitely; without a
   # connect timeout we fall back to the OS TCP timeout (tens of seconds).
-  # Raised from 2s: three concurrent subscribes each needed a TLS handshake and the
-  # third timed out. Connect timeouts are a measured value, not a guess.
+  # Connect raised from 2s: three concurrent subscribes each needed a TLS handshake and
+  # the third timed out. Connect timeouts are a measured value, not a guess.
   connect-timeout: 5s
   read-timeout: 3s
 
+binance:
+  base-url: https://api.binance.com
+
+kraken:
+  base-url: https://api.kraken.com
+
 price-stream:
-  # How often the poller asks Binance for a fresh price, per subscribed symbol.
+  # How often the poller asks the upstream for fresh prices (one batch call per tick).
   poll-interval: 2s
   # How long an idle SSE connection is held open before the server closes it; the
   # browser's EventSource reconnects automatically afterwards.
   timeout: 30m
 
 frontend:
-  # Origins allowed to call this API from a browser. Comma-separated; Vite's dev server
-  # defaults to port 5173. The deployed frontend's domain gets added at M4.
+  # Origin PATTERNS allowed to call this API from a browser, comma-separated. Patterns
+  # rather than exact origins because Vercel gives every pull request its own preview
+  # hostname. Production sets FRONTEND_ALLOWED_ORIGINS on the host.
   allowed-origins: http://localhost:5173

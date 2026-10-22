@@ -11,8 +11,11 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  * responses it has already received — the server looks healthy while the UI reports failure.
  * <p>
  * Origins come from configuration because they differ per environment: localhost in dev, the
- * deployed frontend's domain in production. Never a wildcard — that would let any site on the
- * internet read this API through a visitor's browser.
+ * deployed frontend's domains in production. They are <em>patterns</em> ({@code allowedOriginPatterns})
+ * rather than exact origins, because Vercel gives every pull request a fresh preview hostname
+ * that a fixed list cannot anticipate, e.g. {@code https://pasheez-*-yourteam.vercel.app}.
+ * Never a bare {@code *}: that would let any site on the internet read this API through a
+ * visitor's browser.
  */
 @Configuration
 public class CorsConfig implements WebMvcConfigurer {
@@ -26,7 +29,7 @@ public class CorsConfig implements WebMvcConfigurer {
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/prices/**")
-                .allowedOrigins(allowedOrigins)
+                .allowedOriginPatterns(allowedOrigins)
                 .allowedMethods("GET");
     }
 }

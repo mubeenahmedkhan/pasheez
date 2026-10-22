@@ -18,6 +18,15 @@ public class PriceController {
         this.priceStreamService = priceStreamService;
     }
 
+    /** Which exchange the prices come from, so the UI never claims the wrong one. */
+    @GetMapping("/source")
+    public SourceInfo source() {
+        return new SourceInfo(priceSource.name());
+    }
+
+    public record SourceInfo(String name) {
+    }
+
     @GetMapping("/{symbol}")
     public PriceTick getPrice(@PathVariable String symbol) {
         return priceSource.latestPrice(new Symbol(symbol));

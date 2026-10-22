@@ -48,6 +48,15 @@ class PriceControllerTest {
     }
 
     @Test
+    void reportsWhichExchangeThePricesComeFrom() throws Exception {
+        when(priceSource.name()).thenReturn("Kraken");
+
+        mockMvc.perform(get("/prices/source"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.name").value("Kraken"));
+    }
+
+    @Test
     void returns404ForAnUnknownSymbol() throws Exception {
         when(priceSource.latestPrice(any())).thenThrow(new UnknownSymbolException(new Symbol("NOPE")));
 

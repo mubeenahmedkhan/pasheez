@@ -8,7 +8,7 @@ import './App.css'
 // a deployed page tries to call the visitor's own machine.
 const API_BASE = import.meta.env.VITE_API_BASE_URL
 
-// The watchlist: eight of the most heavily traded USDT pairs on Binance.
+// The watchlist: eight of the most heavily traded USDT pairs.
 const WATCHLIST = [
   { symbol: 'BTCUSDT', name: 'Bitcoin' },
   { symbol: 'ETHUSDT', name: 'Ethereum' },
@@ -28,10 +28,20 @@ function App() {
   const [ticks, setTicks] = useState<Record<string, PriceTick>>({})
   const [directions, setDirections] = useState<Record<string, Direction>>({})
   const [status, setStatus] = useState<Status>('connecting')
+  // Which exchange the backend is using. Asked for, not assumed: production and local
+  // development deliberately use different exchanges (see ADR 0005).
+  const [source, setSource] = useState<string | null>(null)
 
   // Previous prices are bookkeeping, not something we draw — a ref survives renders
   // without causing them.
   const previousPrices = useRef<Record<string, number>>({})
+
+  useEffect(() => {
+    fetch(`${API_BASE}/prices/source`)
+      .then((response) => (response.ok ? response.json() : null))
+      .then((info: { name: string } | null) => setSource(info?.name ?? null))
+      .catch(() => setSource(null))
+  }, [])
 
   useEffect(() => {
     // ONE connection for the whole watchlist. Browsers cap concurrent HTTP/1.1
@@ -78,7 +88,7 @@ function App() {
         <h1 className="wordmark">pasheez</h1>
         <p className="tagline">Live crypto prices, the moment they move</p>
         <p className="blurb">
-          The eight most traded pairs on Binance, streamed to this page over a single open
+          Eight of the most traded crypto pairs, streamed to this page over a single open
           connection. Nothing to refresh — the numbers update themselves.
         </p>
       </header>
@@ -105,7 +115,8 @@ function App() {
       </footer>
 
       <p className="footnote">
-        Prices from Binance. <em>Pasheez</em> — an old Persian word for a small copper coin.
+        {source ? `Prices from ${source}. ` : ''}
+        <em>Pasheez</em> — an old Persian word for a small copper coin.
       </p>
     </main>
   )

@@ -1,7 +1,6 @@
 package com.pasheez.price;
 
 import org.springframework.http.HttpStatusCode;
-import org.springframework.stereotype.Component;
 import org.springframework.web.client.ResourceAccessException;
 import org.springframework.web.client.RestClient;
 
@@ -10,13 +9,18 @@ import java.util.Collection;
 import java.util.List;
 import java.util.stream.Collectors;
 
-@Component
+/** Adapter for Binance's public ticker. Selected by {@link PriceSourceConfig}. */
 public class BinancePriceSource implements PriceSource {
 
     private final RestClient restClient;
 
     BinancePriceSource(RestClient restClient) {
         this.restClient = restClient;
+    }
+
+    @Override
+    public String name() {
+        return "Binance";
     }
 
     @Override
