@@ -1,0 +1,93 @@
+name: CI
+
+# Run on every push to any branch, and on every PR targeting main. Pushes catch
+# problems while you work; the PR run is what branch protection can require.
+on:
+  push:
+    branches: ['**']
+  pull_request:
+    branches: [main]
+
+# Least privilege: this workflow only reads the repository. A workflow that needs to
+# publish or comment must ask for those permissions explicitly.
+permissions:
+  contents: read
+
+# Pushing twice in a minute cancels the earlier run instead of queueing both.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  backend:
+    name: Backend — tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up JDK 21
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          # Without this, every run re-downloads the whole dependency tree. The cache
+          # key is derived from pom.xml, so it is reused until dependencies change.
+          cache: maven
+
+      # `verify` rather than `test`: it runs the tests AND packages the jar, so a
+      # Spring Boot repackaging problem fails here rather than during a deploy.
+      - name: Build and test
+        run: ./mvnw -B --no-transfer-progress verify
+
+  frontend:
+    name: Frontend — lint, types, build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Node
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: frontend/.nvmrc
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+
+      # `npm ci`, never `npm install`: it installs strictly from package-lock.json and
+      # fails if the lock file and package.json disagree. Reproducible by construction.
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Lint
+        run: npm run lint
+
+      # `npm run build` runs `tsc -b` first, so this is also the type check. It further
+      # proves the VITE_API_BASE_URL build guard behaves in CI, not just locally.
+      - name: Type-check and build
+        run: npm run build
+        env:
+          # A placeholder: this job only proves the bundle compiles. The real URL is set
+          # in Vercel's own environment. Set a repository variable of the same name to
+          # override this.
+          VITE_API_BASE_URL: ${{ vars.VITE_API_BASE_URL || 'https://ci.invalid' }}
+
+  docker:
+    name: Docker — image builds
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      # Builds but does not publish: this catches a broken Dockerfile here, instead of
+      # five minutes into a deploy. Layers are cached between runs.
+      - name: Build image
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: false
+          tags: pasheez:ci
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
