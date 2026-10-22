@@ -21,10 +21,10 @@ public class PriceController {
     /** Which exchange the prices come from, so the UI never claims the wrong one. */
     @GetMapping("/source")
     public SourceInfo source() {
-        return new SourceInfo(priceSource.name());
+        return new SourceInfo(priceSource.name(), priceSource.changeWindow());
     }
 
-    public record SourceInfo(String name) {
+    public record SourceInfo(String name, String changeWindow) {
     }
 
     @GetMapping("/{symbol}")

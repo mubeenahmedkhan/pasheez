@@ -41,16 +41,21 @@ class KrakenPriceSourceTest {
         server.expect(requestTo(BTC_AND_DOGE))
                 .andRespond(withSuccess("""
                         {"error":[],"result":{
-                          "XBTUSDT":{"c":["81292.10000","0.01"],"v":["1","2"]},
-                          "XDGUSDT":{"c":["0.078530000","100"]}}}
+                          "XBTUSDT":{"a":["81300.00000","1","1"],"b":["81290.00000","1","1"],
+                                     "c":["81292.10000","0.01"],"o":"80000.00000","v":["1","2"]},
+                          "XDGUSDT":{"a":["0.078540000","1","1"],"b":["0.078520000","1","1"],
+                                     "c":["0.078530000","100"],"o":"0.080000000"}}}
                         """, MediaType.APPLICATION_JSON));
 
-        Map<String, BigDecimal> prices = priceSource.latestPrices(btcAndDoge()).stream()
-                .collect(Collectors.toMap(t -> t.symbol().value(), PriceTick::price));
+        Map<String, PriceTick> ticks = priceSource.latestPrices(btcAndDoge()).stream()
+                .collect(Collectors.toMap(t -> t.symbol().value(), t -> t));
 
-        assertEquals(Map.of(
-                "BTCUSDT", new BigDecimal("81292.10000"),
-                "DOGEUSDT", new BigDecimal("0.078530000")), prices);
+        assertEquals(java.util.Set.of("BTCUSDT", "DOGEUSDT"), ticks.keySet());
+        // Mid of bid 81290 and ask 81300, not the last trade of 81292.10.
+        assertEquals(0, new BigDecimal("81295").compareTo(ticks.get("BTCUSDT").price()));
+        // (81292.10 - 80000) / 80000 = +1.62% (last trade against today's open)
+        assertEquals(new BigDecimal("1.62"), ticks.get("BTCUSDT").changePercent());
+        assertEquals(new BigDecimal("-1.84"), ticks.get("DOGEUSDT").changePercent());
         server.verify();
     }
 
@@ -80,6 +85,17 @@ class KrakenPriceSourceTest {
         server.expect(requestTo(BTC_AND_DOGE)).andRespond(withServerError());
 
         assertThrows(PriceUnavailableException.class, () -> priceSource.latestPrices(btcAndDoge()));
+    }
+
+    @Test
+    void fallsBackToTheLastTradeWhenTheBookIsMissing() {
+        server.expect(requestTo(BTC_AND_DOGE))
+                .andRespond(withSuccess("""
+                        {"error":[],"result":{"XBTUSDT":{"c":["81292.10000","0.01"],"o":"80000.0"}}}
+                        """, MediaType.APPLICATION_JSON));
+
+        PriceTick btc = priceSource.latestPrices(btcAndDoge()).getFirst();
+        assertEquals(new BigDecimal("81292.10000"), btc.price());
     }
 
     @Test
