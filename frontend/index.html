@@ -4,7 +4,16 @@
     <meta charset="UTF-8" />
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>frontend</title>
+    <title>pasheez — live crypto prices</title>
+    <meta name="description" content="Live crypto prices, streamed as they move." />
+    <!-- Apply the saved theme before React loads, so a dark-theme visitor never sees a
+         flash of the light page first. Wrapped in try: storage can be blocked. -->
+    <script>
+      try {
+        document.documentElement.dataset.theme =
+          localStorage.getItem('pasheez-theme') === 'dark' ? 'dark' : 'light'
+      } catch (e) {}
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -36,7 +36,7 @@ class PriceControllerTest {
     @Test
     void returnsThePriceAsJson() throws Exception {
         when(priceSource.latestPrice(any()))
-                .thenReturn(new PriceTick(new Symbol("BTCUSDT"), new BigDecimal("82252.00"), Instant.now()));
+                .thenReturn(new PriceTick(new Symbol("BTCUSDT"), new BigDecimal("82252.00"), new BigDecimal("-3.46"), Instant.now()));
 
         mockMvc.perform(get("/prices/btcusdt"))
                 .andExpect(status().isOk())
@@ -44,16 +44,19 @@ class PriceControllerTest {
                 // rather than a nested {"value":"..."} object.
                 .andExpect(jsonPath("$.symbol").value("BTCUSDT"))
                 .andExpect(jsonPath("$.price").value(82252.00))
+                .andExpect(jsonPath("$.changePercent").value(-3.46))
                 .andExpect(jsonPath("$.timestamp").exists());
     }
 
     @Test
     void reportsWhichExchangeThePricesComeFrom() throws Exception {
         when(priceSource.name()).thenReturn("Kraken");
+        when(priceSource.changeWindow()).thenReturn("since 00:00 UTC");
 
         mockMvc.perform(get("/prices/source"))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.name").value("Kraken"));
+                .andExpect(jsonPath("$.name").value("Kraken"))
+                .andExpect(jsonPath("$.changeWindow").value("since 00:00 UTC"));
     }
 
     @Test

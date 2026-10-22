@@ -39,6 +39,12 @@ public class KrakenPriceSource implements PriceSource {
         return "Kraken";
     }
 
+    /** Kraken's ticker only offers today's opening price, not the price 24 hours ago. */
+    @Override
+    public String changeWindow() {
+        return "since 00:00 UTC";
+    }
+
     @Override
     public PriceTick latestPrice(Symbol symbol) {
         return latestPrices(List.of(symbol)).stream()
@@ -85,11 +91,21 @@ public class KrakenPriceSource implements PriceSource {
         Instant readAt = Instant.now();
         return response.result().entrySet().stream()
                 .filter(entry -> entry.getValue().c() != null && !entry.getValue().c().isEmpty())
-                .map(entry -> new PriceTick(
-                        new Symbol(toCommonSymbol(entry.getKey())),
-                        new BigDecimal(entry.getValue().c().getFirst()),
-                        readAt))
+                .map(entry -> toTick(new Symbol(toCommonSymbol(entry.getKey())), entry.getValue(), readAt))
                 .toList();
+    }
+
+    private static PriceTick toTick(Symbol symbol, KrakenTickerResponse.Ticker t, Instant readAt) {
+        BigDecimal last = new BigDecimal(t.c().getFirst());
+        return new PriceTick(
+                symbol,
+                PriceSource.midPrice(first(t.b()), first(t.a()), last),
+                PriceSource.percentChange(t.o() == null ? null : new BigDecimal(t.o()), last),
+                readAt);
+    }
+
+    private static BigDecimal first(List<String> values) {
+        return values == null || values.isEmpty() ? null : new BigDecimal(values.getFirst());
     }
 
     static String toCommonSymbol(String krakenPair) {

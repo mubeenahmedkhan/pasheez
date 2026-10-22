@@ -1,42 +1,50 @@
 /* ──────────────────────────────────────────────────────────────────────────
    Design tokens. Persian palette: turquoise (firouzeh) and lapis as anchors,
-   warm parchment ground, deep ink text, saffron as the single sparing accent.
-   Change a value here and it propagates everywhere — this is why we use custom
-   properties instead of repeating colours in each rule.
+   saffron as the warm accent, on a parchment ground. Every colour lives here once;
+   rules below only ever reference tokens, so a theme is just a different set of them.
    ────────────────────────────────────────────────────────────────────────── */
-:root {
-  --parchment: #faf6ef;
-  --card: #fffdf8;
-  --ink: #1f2430;
-  --ink-soft: #5e6575;
-  --firouzeh: #2a9d9b;
-  --lapis: #1f4e79;
-  --saffron: #c98f28;
-  --rise: #5f8a6a;
-  --fall: #b0603f;
-  --rule: rgba(31, 78, 121, 0.16);
-  --shadow: 0 1px 2px rgba(31, 36, 48, 0.04), 0 10px 30px rgba(31, 78, 121, 0.07);
+:root,
+:root[data-theme='light'] {
+  --parchment: #f7f1e3;
+  --card: #fffcf5;
+  --ink: #2a2f3a;
+  --ink-soft: #6a6f7c;
+  --firouzeh: #1f9a96;
+  --lapis: #24518a;
+  --saffron: #e09b2d;
+  --saffron-soft: rgba(224, 155, 45, 0.14);
+  --rise: #3f8a5a;
+  --rise-soft: rgba(63, 138, 90, 0.14);
+  --fall: #c0573a;
+  --fall-soft: rgba(192, 87, 58, 0.13);
+  --rule: rgba(36, 81, 138, 0.14);
+  --shadow: 0 1px 2px rgba(42, 47, 58, 0.05), 0 14px 40px rgba(36, 81, 138, 0.1);
+  --texture: rgba(36, 81, 138, 0.1);
 
   --serif: 'Iowan Old Style', Palatino, 'Palatino Linotype', Georgia, serif;
   --sans: system-ui, 'Segoe UI', Roboto, sans-serif;
+  color-scheme: light;
 }
 
-/* Same palette, re-lit for a dark viewer. Only the tokens change; no rule below
-   needs to know which theme is active. */
-@media (prefers-color-scheme: dark) {
-  :root {
-    --parchment: #101620;
-    --card: #161d28;
-    --ink: #ece5d7;
-    --ink-soft: #99a2b2;
-    --firouzeh: #49bdb8;
-    --lapis: #7fa8d0;
-    --saffron: #d8a84a;
-    --rise: #7faa88;
-    --fall: #c87d5e;
-    --rule: rgba(73, 189, 184, 0.2);
-    --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 10px 30px rgba(0, 0, 0, 0.25);
-  }
+/* Dark is opt-in via the toggle, and deliberately not near-black: a deep lapis night
+   with warm ivory text is far easier on the eyes than pure white on pure black. */
+:root[data-theme='dark'] {
+  --parchment: #1b2433;
+  --card: #222d3f;
+  --ink: #efe6d3;
+  --ink-soft: #a7afbd;
+  --firouzeh: #4cc3bd;
+  --lapis: #8fb5e3;
+  --saffron: #f0b04a;
+  --saffron-soft: rgba(240, 176, 74, 0.16);
+  --rise: #7cc595;
+  --rise-soft: rgba(124, 197, 149, 0.16);
+  --fall: #ec8c6c;
+  --fall-soft: rgba(236, 140, 108, 0.16);
+  --rule: rgba(143, 181, 227, 0.16);
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.25), 0 14px 40px rgba(0, 0, 0, 0.3);
+  --texture: rgba(240, 176, 74, 0.08);
+  color-scheme: dark;
 }
 
 * {
@@ -48,17 +56,31 @@ body {
   min-height: 100vh;
   display: grid;
   place-items: center;
-  padding: 2rem 1.25rem;
+  padding: 2rem 1rem;
 
   font-family: var(--sans);
   color: var(--ink);
   background-color: var(--parchment);
-
-  /* Girih: two squares at 45° make the eight-pointed star of Persian tilework.
-     Kept at very low opacity — texture you notice only if you look for it. */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Cg fill='none' stroke='%231f4e79' stroke-width='1' opacity='0.09'%3E%3Crect x='16' y='16' width='32' height='32'/%3E%3Crect x='16' y='16' width='32' height='32' transform='rotate(45 32 32)'/%3E%3C/g%3E%3C/svg%3E");
-  background-size: 64px 64px;
+  /* A soft wash of saffron and turquoise light behind the panel, so the page is warm
+     rather than flat. */
+  background-image:
+    radial-gradient(60rem 40rem at 15% -10%, var(--saffron-soft), transparent 60%),
+    radial-gradient(50rem 40rem at 110% 110%, rgba(31, 154, 150, 0.1), transparent 60%);
+  background-attachment: fixed;
+  transition: background-color 0.4s ease, color 0.4s ease;
 
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+/* Girih texture: two squares at 45° make the eight-pointed star of Persian tilework. */
+body::before {
+  content: '';
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  pointer-events: none;
+  background-color: var(--texture);
+  -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Cg fill='none' stroke='black' stroke-width='1'%3E%3Crect x='16' y='16' width='32' height='32'/%3E%3Crect x='16' y='16' width='32' height='32' transform='rotate(45 32 32)'/%3E%3C/g%3E%3C/svg%3E") 0 0 / 64px 64px;
+  mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='64' height='64' viewBox='0 0 64 64'%3E%3Cg fill='none' stroke='black' stroke-width='1'%3E%3Crect x='16' y='16' width='32' height='32'/%3E%3Crect x='16' y='16' width='32' height='32' transform='rotate(45 32 32)'/%3E%3C/g%3E%3C/svg%3E") 0 0 / 64px 64px;
 }

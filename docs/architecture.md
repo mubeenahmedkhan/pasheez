@@ -16,7 +16,7 @@ flowchart LR
 
     user -- "HTTPS: loads the page" --> fe
     user -- "SSE: one stream for the whole watchlist" --> api
-    api -- "batch ticker poll every 2 s<br/>(production)" --> kraken
+    api -- "batch ticker poll every 2 s<br/>mid price + change (production)" --> kraken
     api -. "local development" .-> binance
 ```
 
@@ -62,3 +62,4 @@ flowchart TB
 | [0003](adr/0003-one-sse-stream-per-client-not-per-symbol.md) | One stream per client, not per symbol |
 | [0004](adr/0004-host-on-render-and-vercel.md) | Render + Vercel hosting |
 | [0005](adr/0005-select-the-price-source-by-configuration.md) | Config-selected price source; Kraken in production |
+| [0006](adr/0006-mid-price-and-honest-change-window.md) | Mid price, and a labelled change window per source |

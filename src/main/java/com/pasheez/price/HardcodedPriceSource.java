@@ -11,7 +11,12 @@ public class HardcodedPriceSource implements PriceSource {
     }
 
     @Override
+    public String changeWindow() {
+        return "n/a";
+    }
+
+    @Override
     public PriceTick latestPrice(Symbol symbol) {
-        return new PriceTick(symbol, new BigDecimal("65000.00"), Instant.now());
+        return new PriceTick(symbol, new BigDecimal("65000.00"), BigDecimal.ZERO, Instant.now());
     }
 }

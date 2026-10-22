@@ -24,22 +24,29 @@ public class BinancePriceSource implements PriceSource {
     }
 
     @Override
+    public String changeWindow() {
+        return "24h";
+    }
+
+    @Override
     public PriceTick latestPrice(Symbol symbol) {
-        BinanceTickerResponse response = get(
-                "/api/v3/ticker/price?symbol={s}",
-                BinanceTickerResponse.class,
+        BinanceTicker24h response = get(
+                "/api/v3/ticker/24hr?symbol={s}",
+                BinanceTicker24h.class,
                 () -> new UnknownSymbolException(symbol),
                 symbol.value());
 
-        if (response == null || response.price() == null) {
+        if (response == null || response.lastPrice() == null) {
             throw new PriceUnavailableException("Binance returned an empty body", null);
         }
-        return new PriceTick(symbol, response.price(), Instant.now());
+        return toTick(symbol, response, Instant.now());
     }
 
     /**
      * One upstream request for every symbol, instead of one request per symbol. Binance
      * wants the list as a JSON array in a query parameter: symbols=["BTCUSDT","ETHUSDT"].
+     * The 24hr ticker (rather than the plain price ticker) is used because it carries the
+     * best bid/ask for the mid price and the rolling 24h change in the same response.
      */
     @Override
     public List<PriceTick> latestPrices(Collection<Symbol> symbols) {
@@ -51,9 +58,9 @@ public class BinancePriceSource implements PriceSource {
                 .map(symbol -> "\"" + symbol.value() + "\"")
                 .collect(Collectors.joining(",", "[", "]"));
 
-        BinanceTickerResponse[] responses = get(
-                "/api/v3/ticker/price?symbols={symbols}",
-                BinanceTickerResponse[].class,
+        BinanceTicker24h[] responses = get(
+                "/api/v3/ticker/24hr?symbols={symbols}",
+                BinanceTicker24h[].class,
                 () -> new UnknownSymbolException(symbols),
                 symbolsParam);
 
@@ -64,11 +71,19 @@ public class BinancePriceSource implements PriceSource {
         // One timestamp for the whole batch: these prices were read together.
         Instant readAt = Instant.now();
         return java.util.Arrays.stream(responses)
-                .filter(response -> response.price() != null)
+                .filter(response -> response.lastPrice() != null)
                 // Binance does not echo the requested order, so trust the symbol in each
                 // element rather than its position in the array.
-                .map(response -> new PriceTick(new Symbol(response.symbol()), response.price(), readAt))
+                .map(response -> toTick(new Symbol(response.symbol()), response, readAt))
                 .toList();
+    }
+
+    private static PriceTick toTick(Symbol symbol, BinanceTicker24h t, Instant readAt) {
+        return new PriceTick(
+                symbol,
+                PriceSource.midPrice(t.bidPrice(), t.askPrice(), t.lastPrice()),
+                t.priceChangePercent(),
+                readAt);
     }
 
     /** Shared request plumbing: the two calls differ only in URI, body type, and 400 meaning. */

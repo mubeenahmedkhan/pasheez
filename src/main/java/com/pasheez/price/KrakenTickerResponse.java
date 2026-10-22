@@ -12,8 +12,12 @@ import java.util.Map;
 @JsonIgnoreProperties(ignoreUnknown = true)
 record KrakenTickerResponse(List<String> error, Map<String, Ticker> result) {
 
-    /** {@code c} is the last closed trade: [price, lot volume]. Everything else is ignored. */
+    /**
+     * Kraken's single-letter fields: {@code a} best ask, {@code b} best bid, {@code c} last trade —
+     * each a list whose first element is the price — and {@code o}, the opening price at
+     * 00:00 UTC today. Everything else is ignored.
+     */
     @JsonIgnoreProperties(ignoreUnknown = true)
-    record Ticker(List<String> c) {
+    record Ticker(List<String> a, List<String> b, List<String> c, String o) {
     }
 }
